@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RunSocial - Трекинг бега</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        .app-container {
+            max-width: 100%;
+            margin: 0 auto;
+            position: relative;
+            min-height: 100vh;
+            padding-bottom: 70px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #4e54c8, #8f94fb);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .page {
+            display: none;
+            padding: 15px;
+            animation: fadeIn 0.3s;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #888;
+            cursor: pointer;
+        }
+        
+        .nav-item.active {
+            color: #4e54c8;
+        }
+        
+        .nav-icon {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #4e54c8, #8f94fb);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin: 10px 0;
+            font-size: 1rem;
+        }
+        
+        .btn-secondary {
+            background: #f1f3f5;
+            color: #495057;
+        }
+        
+        .map-container {
+            height: 300px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+        }
+        
+        .stat {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #4e54c8;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+        .training-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .training-date {
+            font-weight: bold;
+        }
+        
+        .training-stats {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #4e54c8;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+        
+        .contact-info {
+            flex: 1;
+        }
+        
+        .contact-name {
+            font-weight: bold;
+        }
+        
+        .contact-details {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+        .invite-btn {
+            background: #4e54c8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        
+        .rating-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .rating-position {
+            font-weight: bold;
+            font-size: 1.2rem;
+            width: 30px;
+            text-align: center;
+            margin-right: 10px;
+        }
+        
+        .rating-points {
+            margin-left: auto;
+            font-weight: bold;
+            color: #4e54c8;
+        }
+        
+        .profile-header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4e54c8, #8f94fb);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 2rem;
+            margin: 0 auto 15px;
+        }
+        
+        .profile-name {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .profile-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .training-detail {
+            margin-bottom: 20px;
+        }
+        
+        .detail-map {
+            height: 250px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .tab-container {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid #4e54c8;
+            color: #4e54c8;
+            font-weight: bold;
+        }
+        
+        .search-bar {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px 0 0 8px;
+            font-size: 1rem;
+        }
+        
+        .search-btn {
+            background: #4e54c8;
+            color: white;
+            border: none;
+            padding: 0 15px;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">RunSocial</div>
+        </header>
+        
+        <div id="map-page" class="page active">
+            <h2>Карта и тренировка</h2>
+            <div class="map-container" id="map"></div>
+            <div class="stats-container">
+                <div class="stat">
+                    <div class="stat-value" id="distance">0.0</div>
+                    <div class="stat-label">км</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="duration">00:00</div>
+                    <div class="stat-label">время</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="pace">0:00</div>
+                    <div class="stat-label">темп мин/км</div>
+                </div>
+            </div>
+            <button class="btn" id="start-btn">Начать тренировку</button>
+            <button class="btn btn-secondary" id="stop-btn" disabled>Завершить</button>
+        </div>
+        
+        <div id="history-page" class="page">
+            <h2>История тренировок</h2>
+            <div id="trainings-list">
+                <!-- Training items will be added here dynamically -->
+            </div>
+        </div>
+        
+        <div id="contacts-page" class="page">
+            <h2>Контакты</h2>
+            <div class="tab-container">
+                <div class="tab active" data-tab="friends">Друзья</div>
+                <div class="tab" data-tab="find">Найти рядом</div>
+                <div class="tab" data-tab="requests">Запросы</div>
+            </div>
+            
+            <div id="friends-tab">
+                <div class="search-bar">
+                    <input type="text" class="search-input" placeholder="Поиск друзей">
+                    <button class="search-btn">🔍</button>
+                </div>
+                <div id="friends-list">
+                    <!-- Friends will be added here dynamically -->
+                </div>
+                <button class="btn">Найти друзей поблизости</button>
+            </div>
+            
+            <div id="find-tab" style="display: none;">
+                <div class="card">
+                    <h3>Бегуны рядом</h3>
+                    <div id="nearby-list">
+                        <!-- Nearby runners will be added here dynamically -->
+                    </div>
+                </div>
+                <button class="btn">Обновить геопоиск</button>
+            </div>
+            
+            <div id="requests-tab" style="display: none;">
+                <div class="card">
+                    <h3>Запросы на дружбу</h3>
+                    <div id="requests-list">
+                        <!-- Friend requests will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="rating-page" class="page">
+            <h2>Рейтинг</h2>
+            <div class="tab-container">
+                <div class="tab active" data-rating-tab="global">Общий</div>
+                <div class="tab" data-rating-tab="local">Мой район</div>
+                <div class="tab" data-rating-tab="friends">Друзья</div>
+            </div>
+            <div id="rating-list">
+                <!-- Rating items will be added here dynamically -->
+            </div>
+        </div>
+        
+        <div id="profile-page" class="page">
+            <div class="profile-header">
+                <div class="profile-avatar">ИИ</div>
+                <div class="profile-name">Иван Иванов</div>
+                <div class="profile-stats">
+                    <div class="stat">
+                        <div class="stat-value">24</div>
+                        <div class="stat-label">тренировки</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">127</div>
+                        <div class="stat-label">друзья</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">5</div>
+                        <div class="stat-label">место</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Мой профиль</h3>
+                <div class="form-group">
+                    <label class="form-label">Имя пользователя</label>
+                    <input type="text" class="form-input" value="ivan_runner">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Имя</label>
+                    <input type="text" class="form-input" value="Иван">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Фамилия</label>
+                    <input type="text" class="form-input" value="Иванов">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Возраст</label>
+                    <input type="number" class="form-input" value="28">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Район</label>
+                    <input type="text" class="form-input" value="Центральный">
+                </div>
+                <button class="btn">Сохранить изменения</button>
+            </div>
+            
+            <div class="card">
+                <h3>Достижения</h3>
+                <div style="text-align: center; padding: 20px;">
+                    <p>Здесь будут отображаться ваши достижения</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="training-detail-page" class="page">
+            <h2>Детали тренировки</h2>
+            <div class="training-detail">
+                <div class="detail-map" id="detail-map"></div>
+                <div class="stats-container">
+                    <div class="stat">
+                        <div class="stat-value" id="detail-distance">5.2</div>
+                        <div class="stat-label">км</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="detail-duration">28:15</div>
+                        <div class="stat-label">время</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="detail-pace">5:26</div>
+                        <div class="stat-label">темп мин/км</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Информация о тренировке</h3>
+                    <p><strong>Дата:</strong> <span id="detail-date">15 мая 2023, 09:30</span></p>
+                    <p><strong>Средняя скорость:</strong> <span id="detail-speed">11.2 км/ч</span></p>
+                    <p><strong>Сожжено калорий:</strong> <span id="detail-calories">327 ккал</span></p>
+                </div>
+                <button class="btn">Поделиться результатом</button>
+                <button class="btn btn-secondary">Назад к истории</button>
+            </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <div class="nav-item active" data-page="map-page">
+                <div class="nav-icon">🗺️</div>
+                <div>Карта</div>
+            </div>
+            <div class="nav-item" data-page="history-page">
+                <div class="nav-icon">📊</div>
+                <div>История</div>
+            </div>
+            <div class="nav-item" data-page="contacts-page">
+                <div class="nav-icon">👥</div>
+                <div>Контакты</div>
+            </div>
+            <div class="nav-item" data-page="rating-page">
+                <div class="nav-icon">🏆</div>
+                <div>Рейтинг</div>
+            </div>
+            <div class="nav-item" data-page="profile-page">
+                <div class="nav-icon">👤</div>
+                <div>Профиль</div>
+            </div>
+        </div>
+        
+        <div class="notification" id="notification">
+            Тренировка начата!
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Demo data
+        const demoData = {
+            trainings: [
+                { id: 1, date: "15 мая 2023, 09:30", distance: "5.2", duration: "28:15", pace: "5:26" },
+                { id: 2, date: "14 мая 2023, 18:45", distance: "3.8", duration: "22:10", pace: "5:50" },
+                { id: 3, date: "12 мая 2023, 07:15", distance: "7.1", duration: "38:22", pace: "5:24" },
+                { id: 4, date: "10 мая 2023, 19:30", distance: "4.5", duration: "25:40", pace: "5:42" }
+            ],
+            friends: [
+                { id: 1, name: "Анна Петрова", username: "anna_run", stats: "5.3 км, 5:15/км" },
+                { id: 2, name: "Сергей Смирнов", username: "sergey_fast", stats: "7.1 км, 4:50/км" },
+                { id: 3, name: "Мария Ковалева", username: "masha_run", stats: "4.8 км, 5:35/км" },
+                { id: 4, name: "Дмитрий Волков", username: "dima_runner", stats: "6.2 км, 5:10/км" }
+            ],
+            nearby: [
+                { id: 1, name: "Олег Бегов", distance: "0.3 км", stats: "5.2 км, 5:20/км" },
+                { id: 2, name: "Елена Быстрая", distance: "0.5 км", stats: "4.7 км, 5:40/км" },
+                { id: 3, name: "Артем Резвый", distance: "0.8 км", stats: "6.8 км, 4:55/км" }
+            ],
+            requests: [
+                { id: 1, name: "Павел Бегунков", mutual: "3 общих друга" },
+                { id: 2, name: "Юлия Спринтер", mutual: "1 общий друг" }
+            ],
+            ratings: [
+                { id: 1, name: "Алексей Профессионалов", points: "1245" },
+                { id: 2, name: "Сергей Смирнов", points: "1180" },
+                { id: 3, name: "Олег Бегов", points: "1125" },
+                { id: 4, name: "Анна Петрова", points: "1080" },
+                { id: 5, name: "Иван Иванов", points: "1025" },
+                { id: 6, name: "Мария Ковалева", points: "980" },
+                { id: 7, name: "Дмитрий Волков", points: "945" },
+                { id: 8, name: "Елена Быстрая", points: "890" }
+            ]
+        };
+
+        // DOM Elements
+        const pages = document.querySelectorAll('.page');
+        const navItems = document.querySelectorAll('.nav-item');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const distanceEl = document.getElementById('distance');
+        const durationEl = document.getElementById('duration');
+        const paceEl = document.getElementById('pace');
+        const notificationEl = document.getElementById('notification');
+        const trainingsList = document.getElementById('trainings-list');
+        const friendsList = document.getElementById('friends-list');
+        const nearbyList = document.getElementById('nearby-list');
+        const requestsList = document.getElementById('requests-list');
+        const ratingList = document.getElementById('rating-list');
+        const tabs = document.querySelectorAll('.tab');
+        const ratingTabs = document.querySelectorAll('[data-rating-tab]');
+        
+        // Initialize map
+        let map, detailMap;
+        let trackInterval;
+        let isTracking = false;
+        let startTime;
+        let path = [];
+        
+        function initMap() {
+            map = L.map('map').setView([55.7558, 37.6173], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Try to get user's location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        map.setView([latitude, longitude], 15);
+                        L.marker([latitude, longitude]).addTo(map)
+                            .bindPopup('Ваше текущее местоположение')
+                            .openPopup();
+                    },
+                    (error) => {
+                        console.log('Geolocation error:', error);
+                        // Default to Moscow center
+                        L.marker([55.7558, 37.6173]).addTo(map)
+                            .bindPopup('Центр Москвы')
+                            .openPopup();
+                    }
+                );
+            }
+        }
+        
+        function initDetailMap() {
+            detailMap = L.map('detail-map').setView([55.7558, 37.6173], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(detailMap);
+            
+            // Create a sample route
+            const route = [
+                [55.7558, 37.6173],
+                [55.7578, 37.6173],
+                [55.7578, 37.6273],
+                [55.7588, 37.6373],
+                [55.7598, 37.6473],
+                [55.7608, 37.6573]
+            ];
+            
+            L.polyline(route, {color: 'blue'}).addTo(detailMap);
+            detailMap.fitBounds(route);
+        }
+        
+        // Navigation
+        function navigateTo(pageId) {
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-page') === pageId) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Initialize detail map if needed
+            if (pageId === 'training-detail-page' && !detailMap) {
+                setTimeout(initDetailMap, 100);
+            }
+        }
+        
+        // Show notification
+        function showNotification(message) {
+            notificationEl.textContent = message;
+            notificationEl.style.display = 'block';
+            setTimeout(() => {
+                notificationEl.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Start tracking
+        function startTracking() {
+            if (isTracking) return;
+            
+            isTracking = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            startTime = Date.now();
+            path = [];
+            
+            showNotification('Тренировка начата!');
+            
+            // Clear previous stats
+            distanceEl.textContent = '0.0';
+            durationEl.textContent = '00:00';
+            paceEl.textContent = '0:00';
+            
+            // Start updating stats
+            trackInterval = setInterval(updateTrackingStats, 1000);
+            
+            // Start simulating movement
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const { latitude, longitude } = position.coords;
+                    map.setView([latitude, longitude], 15);
+                    
+                    // Start tracking position
+                    if ('geolocation' in navigator) {
+                        navigator.geolocation.watchPosition((pos) => {
+                            const { latitude, longitude } = pos.coords;
+                            path.push([latitude, longitude]);
+                            
+                            // Update the path on the map
+                            L.polyline(path, {color: 'red'}).addTo(map);
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Stop tracking
+        function stopTracking() {
+            if (!isTracking) return;
+            
+            isTracking = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            clearInterval(trackInterval);
+            
+            showNotification('Тренировка завершена!');
+            
+            // Save to history
+            const duration = (Date.now() - startTime) / 1000;
+            const minutes = Math.floor(duration / 60);
+            const seconds = Math.floor(duration % 60);
+            const distance = (Math.random() * 2 + 3).toFixed(1); // Random distance between 3-5 km
+            
+            demoData.trainings.unshift({
+                id: demoData.trainings.length + 1,
+                date: new Date().toLocaleString('ru-RU'),
+                distance: distance,
+                duration: `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`,
+                pace: `${Math.floor(minutes/distance)}:${Math.floor((minutes/distance % 1) * 60)}`
+            });
+            
+            renderTrainings();
+        }
+        
+        // Update tracking stats
+        function updateTrackingStats() {
+            if (!isTracking) return;
+            
+            const currentTime = Date.now();
+            const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+            const minutes = Math.floor(elapsedSeconds / 60);
+            const seconds = elapsedSeconds % 60;
+            
+            // Simulate distance (for demo purposes)
+            const distance = (elapsedSeconds * 0.003).toFixed(1);
+            const paceMin = Math.floor(minutes / distance);
+            const paceSec = Math.floor((minutes / distance % 1) * 60);
+            
+            durationEl.textContent = `${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+            distanceEl.textContent = distance;
+            paceEl.textContent = `${paceMin}:${paceSec < 10 ? '0' + paceSec : paceSec}`;
+        }
+        
+        // Render trainings list
+        function renderTrainings() {
+            trainingsList.innerHTML = '';
+            demoData.trainings.forEach(training => {
+                const trainingEl = document.createElement('div');
+                trainingEl.className = 'training-item';
+                trainingEl.innerHTML = `
+                    <div>
+                        <div class="training-date">${training.date}</div>
+                        <div class="training-stats">${training.distance} км, ${training.duration}</div>
+                    </div>
+                    <div>
+                        <div class="training-stats">${training.pace} /км</div>
+                    </div>
+                `;
+                trainingEl.addEventListener('click', () => {
+                    // Set detail values
+                    document.getElementById('detail-distance').textContent = training.distance;
+                    document.getElementById('detail-duration').textContent = training.duration;
+                    document.getElementById('detail-pace').textContent = training.pace;
+                    document.getElementById('detail-date').textContent = training.date;
+                    document.getElementById('detail-speed').textContent = (60 / parseFloat(training.pace.replace(':', '.'))).toFixed(1) + ' км/ч';
+                    document.getElementById('detail-calories').textContent = Math.round(parseFloat(training.distance) * 65) + ' ккал';
+                    
+                    navigateTo('training-detail-page');
+                });
+                trainingsList.appendChild(trainingEl);
+            });
+        }
+        
+        // Render friends list
+        function renderFriends() {
+            friendsList.innerHTML = '';
+            demoData.friends.forEach(friend => {
+                const friendEl = document.createElement('div');
+                friendEl.className = 'contact-item';
+                friendEl.innerHTML = `
+                    <div class="avatar">${friend.name[0]}</div>
+                    <div class="contact-info">
+                        <div class="contact-name">${friend.name}</div>
+                        <div class="contact-details">@${friend.username} • ${friend.stats}</div>
+                    </div>
+                    <button class="invite-btn">Пригласить</button>
+                `;
+                friendsList.appendChild(friendEl);
+            });
+        }
+        
+        // Render nearby list
+        function renderNearby() {
+            nearbyList.innerHTML = '';
+            demoData.nearby.forEach(runner => {
+                const runnerEl = document.createElement('div');
+                runnerEl.className = 'contact-item';
+                runnerEl.innerHTML = `
+                    <div class="avatar">${runner.name[0]}</div>
+                    <div class="contact-info">
+                        <div class="contact-name">${runner.name}</div>
+                        <div class="contact-details">${runner.distance} • ${runner.stats}</div>
+                    </div>
+                    <button class="invite-btn">Пригласить</button>
+                `;
+                nearbyList.appendChild(runnerEl);
+            });
+        }
+        
+        // Render requests list
+        function renderRequests() {
+            requestsList.innerHTML = '';
+            demoData.requests.forEach(request => {
+                const requestEl = document.createElement('div');
+                requestEl.className = 'contact-item';
+                requestEl.innerHTML = `
+                    <div class="avatar">${request.name[0]}</div>
+                    <div class="contact-info">
+                        <div class="contact-name">${request.name}</div>
+                        <div class="contact-details">${request.mutual}</div>
+                    </div>
+                    <div>
+                        <button class="invite-btn" style="background: #28a745;">✓</button>
+                        <button class="invite-btn" style="background: #dc3545; margin-left: 5px;">✕</button>
+                    </div>
+                `;
+                requestsList.appendChild(requestEl);
+            });
+        }
+        
+        // Render ratings list
+        function renderRatings() {
+            ratingList.innerHTML = '';
+            demoData.ratings.forEach((runner, index) => {
+                const runnerEl = document.createElement('div');
+                runnerEl.className = 'rating-item';
+                runnerEl.innerHTML = `
+                    <div class="rating-position">${index + 1}</div>
+                    <div class="avatar" style="width: 35px; height: 35px; font-size: 0.9rem;">${runner.name[0]}</div>
+                    <div class="contact-info">
+                        <div class="contact-name">${runner.name}</div>
+                    </div>
+                    <div class="rating-points">${runner.points}</div>
+                `;
+                ratingList.appendChild(runnerEl);
+            });
+        }
+        
+        // Event Listeners
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navigateTo(item.getAttribute('data-page'));
+            });
+        });
+        
+        startBtn.addEventListener('click', startTracking);
+        stopBtn.addEventListener('click', stopTracking);
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.getAttribute('data-tab');
+                
+                // Hide all tabs
+                document.getElementById('friends-tab').style.display = 'none';
+                document.getElementById('find-tab').style.display = 'none';
+                document.getElementById('requests-tab').style.display = 'none';
+                
+                // Show selected tab
+                document.getElementById(`${tabName}-tab`).style.display = 'block';
+                
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+        
+        ratingTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                ratingTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // In a real app, we would fetch different rating data here
+                renderRatings();
+            });
+        });
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            renderTrainings();
+            renderFriends();
+            renderNearby();
+            renderRequests();
+            renderRatings();
+        });
+    </script>
+</body>
+</html>
